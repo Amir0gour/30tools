@@ -1,0 +1,451 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Frontend Utilities Toolkit — 30 Tools</title>
+<style>
+  :root{
+    --bg:#f6fbfc; --card:#ffffff; --muted:#6b7280; --accent:#0ea5a4;
+    --shadow: 0 10px 30px rgba(2,6,23,0.06);
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:#0f172a}
+  .app{max-width:1180px;margin:28px auto;padding:20px}
+  .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+  .header h1{font-size:20px;margin:0}
+  .container{display:grid;grid-template-columns:280px 1fr;gap:18px}
+  .sidebar{background:var(--card);padding:14px;border-radius:12px;box-shadow:var(--shadow);height:78vh;overflow:auto}
+  .tool-btn{display:block;padding:10px;border-radius:8px;text-align:left;border:none;background:transparent;width:100%;cursor:pointer;color:var(--muted);margin-bottom:6px}
+  .tool-btn.active{background:#eef6f5;color:#0f172a;font-weight:600}
+  .card{background:var(--card);padding:18px;border-radius:12px;box-shadow:var(--shadow);min-height:78vh;overflow:auto}
+  .small{font-size:13px;color:var(--muted)}
+  input, textarea, select, button{font-family:inherit}
+  .input, textarea, select{padding:8px;border:1px solid #e6eef0;border-radius:8px;width:100%;font-size:14px}
+  textarea{min-height:120px;resize:vertical}
+  .row{display:flex;gap:8px;align-items:center}
+  .row .input{flex:1}
+  .btn{background:var(--accent);color:white;padding:8px 12px;border-radius:8px;border:none;cursor:pointer}
+  .btn-ghost{background:transparent;border:1px solid #e6eef0;padding:8px 12px;border-radius:8px;cursor:pointer}
+  .result{margin-top:12px;padding:12px;background:#f8fafb;border-radius:8px;border:1px solid #edf2f7;font-family:monospace;white-space:pre-wrap}
+  .preview{max-width:360px;max-height:360px;border-radius:8px;border:1px solid #e6eef0;padding:6px;background:white}
+  footer{margin-top:12px;font-size:13px;color:var(--muted)}
+  .muted{color:var(--muted);font-size:13px;margin-top:8px}
+</style>
+
+<!-- libraries used -->
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+<script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+
+</head>
+<body>
+  <div class="app">
+    <div class="header">
+      <h1>Frontend Utilities Toolkit</h1>
+      <div class="small">Clean, client-side tools — copy/paste, tweak and deploy</div>
+    </div>
+
+    <div class="container">
+      <aside class="sidebar">
+        <div class="small">Tools (30)</div>
+        <div id="toolList" style="margin-top:10px"></div>
+        <div class="muted">Tip: serve with Live Server or `python -m http.server 8000` for best behavior.</div>
+      </aside>
+
+      <main>
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <div>
+              <h2 id="toolTitle"></h2>
+              <div id="toolDesc" class="small"></div>
+            </div>
+            <div id="toolActions"></div>
+          </div>
+
+          <div id="toolArea"></div>
+          <div id="toolResult" class="result" style="display:none"></div>
+        </div>
+
+        <footer>Built to be safe for publishing — avoid tools that enable copyright infringement if you plan to monetize.</footer>
+      </main>
+    </div>
+  </div>
+
+<script>
+/* -------------------------
+   HIGH-QUALITY TOOLSET (30 tools)
+   ------------------------- */
+const tools = [
+  {id:'qr', name:'QR Generator', desc:'Create a QR image from text/URL and download.', render: qrTool},
+  {id:'textqr', name:'Quick Text → QR', desc:'Single-field quick QR generator + download', render: textQrTool},
+  {id:'password', name:'Password Generator', desc:'Generate strong adjustable passwords', render: passwordTool},
+  {id:'pwdstrength', name:'Password Strength Check', desc:'Estimate password strength and give tips', render: pwdStrengthTool},
+  {id:'json', name:'JSON Formatter/Validator', desc:'Pretty-print or minify JSON', render: jsonTool},
+  {id:'base64', name:'Base64 Encode / Decode', desc:'Convert text to/from Base64', render: base64Tool},
+  {id:'sha256', name:'SHA-256 Hash', desc:'Compute SHA-256 digest', render: shaTool},
+  {id:'minify', name:'Minify (HTML/CSS/JS)', desc:'Remove extra whitespace quickly', render: minifyTool},
+  {id:'lorem', name:'Lorem Ipsum Generator', desc:'Generate placeholder paragraphs', render: loremTool},
+  {id:'csvjson', name:'CSV ⇄ JSON Converter', desc:'Convert CSV to JSON and back', render: csvjsonTool},
+  {id:'csvclean', name:'CSV Cleaner / Dedupe', desc:'Remove duplicates and trim CSV rows', render: csvCleanTool},
+  {id:'imageconv', name:'Image Resize & Convert', desc:'Resize & convert images client-side (download)', render: imageTool},
+  {id:'imagecompress', name:'Image Compressor', desc:'Compress image by quality (JPEG/WebP)', render: imageCompressTool},
+  {id:'palette', name:'Color Palette Extractor', desc:'Get top colors (HEX) from image', render: paletteTool},
+  {id:'meme', name:'Meme Maker', desc:'Top/bottom text, download PNG', render: memeTool},
+  {id:'favicon', name:'Favicon Cropper (64×64)', desc:'Crop center and export 64×64 PNG', render: faviconTool},
+  {id:'avatar', name:'Avatar Generator', desc:'Simple identicon avatar from seed', render: avatarTool},
+  {id:'regex', name:'Regex Tester', desc:'Test regular expressions and view matches', render: regexTool},
+  {id:'unit', name:'Unit Converter (length)', desc:'Convert m, cm, mm, km', render: unitTool},
+  {id:'pomodoro', name:'Pomodoro Timer', desc:'Timer with start/pause/reset', render: pomodoroTool},
+  {id:'meta', name:'Meta Tag Generator', desc:'Generate HTML meta + OG tags', render: metaTool},
+  {id:'robots', name:'Robots.txt & Sitemap', desc:'Generate robots.txt and sitemap.xml', render: robotsTool},
+  {id:'flash', name:'Notes → Flashcards', desc:'Create study flashcards from notes', render: flashTool},
+  {id:'summ', name:'Text Summarizer (simple)', desc:'Naive summarizer: first sentences', render: summarizerTool},
+  {id:'cite', name:'Citation Generator', desc:'Quick APA / MLA formats', render: citationTool},
+  {id:'datauri', name:'Text → Data URI', desc:'Create base64 data: URI', render: dataUriTool},
+  {id:'minquick', name:'Quick Minifier', desc:'Tiny snippet minifier', render: minQuickTool},
+  {id:'notes', name:'Study Notes (editor)', desc:'Simple notes editor (copy/clear)', render: notesTool},
+  // PDF tools (3)
+  {id:'pdfmerge', name:'PDF Merge', desc:'Merge multiple PDFs client-side', render: pdfMergeTool},
+  {id:'pdfsplit', name:'PDF Split / Extract', desc:'Extract pages or split PDF', render: pdfSplitTool},
+  {id:'pdfrotate', name:'PDF Rotate Pages', desc:'Rotate selected pages in a PDF', render: pdfRotateTool}
+];
+
+/* render sidebar */
+const toolList = document.getElementById('toolList');
+tools.forEach(t=>{
+  const btn = document.createElement('button');
+  btn.className = 'tool-btn';
+  btn.id = 'btn-'+t.id;
+  btn.textContent = t.name;
+  btn.title = t.desc;
+  btn.onclick = ()=> activateTool(t.id);
+  toolList.appendChild(btn);
+});
+
+/* activate default tool */
+let active = tools[0].id;
+function activateTool(id){
+  active = id;
+  tools.forEach(t => document.getElementById('btn-'+t.id).classList.toggle('active', t.id===id));
+  const t = tools.find(x=>x.id===id);
+  document.getElementById('toolTitle').textContent = t.name;
+  document.getElementById('toolDesc').textContent = t.desc;
+  document.getElementById('toolResult').style.display = 'none';
+  const area = document.getElementById('toolArea'); area.innerHTML = '';
+  try { t.render(area); } catch (e) { area.innerHTML = '<div style="color:red">Tool failed to load — open console (F12) and paste the error here.</div>'; console.error(e); }
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+activateTool(active);
+
+/* utility helpers */
+function showResult(content){
+  const el = document.getElementById('toolResult');
+  if(typeof content === 'string') el.textContent = content;
+  else { el.innerHTML = ''; el.appendChild(content); }
+  el.style.display = 'block';
+  el.scrollIntoView({behavior:'smooth', block:'center'});
+}
+function downloadURL(url, filename){ const a=document.createElement('a'); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove(); }
+function downloadBlob(blob, filename){ const url=URL.createObjectURL(blob); downloadURL(url, filename); setTimeout(()=>URL.revokeObjectURL(url),15000); }
+function escapeHtml(s){ return (s||'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;') }
+
+/* -------------------------
+   Tool implementations (practical, tested)
+   ------------------------- */
+
+async function qrTool(container){
+  container.innerHTML = `<textarea id="qr_text" class="input">https://example.com</textarea>
+  <div class="row" style="margin-top:8px"><button class="btn" id="qr_gen">Generate QR</button><button class="btn-ghost" id="qr_clear">Clear</button></div>
+  <div id="qr_out" style="margin-top:12px"></div>`;
+  document.getElementById('qr_gen').onclick = async ()=>{
+    const txt = document.getElementById('qr_text').value.trim(); if(!txt) return alert('Enter text');
+    const out = document.getElementById('qr_out'); out.innerHTML = 'Generating...';
+    try{
+      const dataUrl = await QRCode.toDataURL(txt, {width:320, margin:1});
+      out.innerHTML = `<img class="preview" src="${dataUrl}" /><div style="margin-top:8px"><button class="btn" id="qr_dl">Download PNG</button></div>`;
+      document.getElementById('qr_dl').onclick = ()=> downloadURL(dataUrl, 'qrcode.png');
+    }catch(e){ out.textContent = 'QR generation failed'; console.error(e) }
+  };
+  document.getElementById('qr_clear').onclick = ()=> { document.getElementById('qr_text').value=''; document.getElementById('qr_out').innerHTML=''; }
+}
+
+async function textQrTool(container){
+  container.innerHTML = `<input id="tqr" class="input" value="Hello" /><div class="row" style="margin-top:8px"><button class="btn" id="tqr_go">Generate & Download</button></div><div id="tqr_out" style="margin-top:12px"></div>`;
+  document.getElementById('tqr_go').onclick = async ()=>{
+    const txt = document.getElementById('tqr').value;
+    const url = await QRCode.toDataURL(txt, {width:300});
+    document.getElementById('tqr_out').innerHTML = `<img class="preview" src="${url}" /><div style="margin-top:8px"><button class="btn" onclick="(function(){downloadURL('${url}','qrcode.png')})()">Download</button></div>`;
+  };
+}
+
+function passwordTool(container){
+  container.innerHTML = `<div class="row"><input id="pw_len" class="input" type="number" value="16" /><label style="margin-left:8px"><input id="pw_sym" type="checkbox" checked/> Symbols</label></div><div class="row" style="margin-top:8px"><button class="btn" id="pw_gen">Generate</button></div><div id="pw_out" class="result" style="display:none"></div>`;
+  document.getElementById('pw_gen').onclick = ()=>{
+    const len = Math.max(6, parseInt(document.getElementById('pw_len').value||16));
+    const syms = document.getElementById('pw_sym').checked;
+    const lower='abcdefghijklmnopqrstuvwxyz', upper=lower.toUpperCase(), nums='0123456789', sy='!@#$%^&*()-_=+[]{}<>?';
+    let chars = lower + upper + nums + (syms ? sy : '');
+    let out = ''; for(let i=0;i<len;i++) out += chars[Math.floor(Math.random()*chars.length)];
+    const el = document.getElementById('pw_out'); el.style.display='block'; el.textContent = out;
+  };
+}
+
+function pwdStrengthTool(container){
+  container.innerHTML = `<input id="psw" class="input" placeholder="Enter password" /><div class="row" style="margin-top:8px"><button class="btn" id="psw_check">Check Strength</button></div><div id="psw_out" class="result" style="display:none"></div>`;
+  document.getElementById('psw_check').onclick = ()=>{
+    const pw = document.getElementById('psw').value || '';
+    let score = 0;
+    if(pw.length>=8) score++;
+    if(/[A-Z]/.test(pw)) score++;
+    if(/[0-9]/.test(pw)) score++;
+    if(/[^A-Za-z0-9]/.test(pw)) score++;
+    const ent = Math.round(pw.length * Math.log2((/[a-z]/.test(pw)?26:1) * (/[A-Z]/.test(pw)?26:1) * (/[0-9]/.test(pw)?10:1) * (/[^A-Za-z0-9]/.test(pw)?33:1)));
+    const out = document.getElementById('psw_out'); out.style.display='block';
+    out.innerHTML = `Score: <strong>${score}/4</strong>\nEstimated entropy: <strong>${isFinite(ent)?ent:'—'}</strong> bits\nAdvice: ${score<3? 'Use length + mixed case + numbers + symbols.' : 'Good — still consider using a passphrase.'}`;
+  };
+}
+
+function jsonTool(container){
+  container.innerHTML = `<textarea id="json_in" class="input">{ "hello": "world" }</textarea><div class="row" style="margin-top:8px"><button class="btn" id="json_pre">Pretty</button><button class="btn-ghost" id="json_min">Minify</button></div><pre id="json_out" class="result" style="display:none"></pre>`;
+  document.getElementById('json_pre').onclick = ()=> { try{ const j=JSON.parse(document.getElementById('json_in').value); document.getElementById('json_out').style.display='block'; document.getElementById('json_out').textContent = JSON.stringify(j,null,2);} catch(e){ document.getElementById('json_out').style.display='block'; document.getElementById('json_out').textContent = 'Error: '+e.message; } };
+  document.getElementById('json_min').onclick = ()=> { try{ const j=JSON.parse(document.getElementById('json_in').value); document.getElementById('json_out').style.display='block'; document.getElementById('json_out').textContent = JSON.stringify(j); } catch(e){ document.getElementById('json_out').style.display='block'; document.getElementById('json_out').textContent = 'Error: '+e.message; } };
+}
+
+function base64Tool(container){
+  container.innerHTML = `<textarea id="b64_in" class="input">Hello world</textarea><div class="row" style="margin-top:8px"><button class="btn" id="b64_enc">Encode</button><button class="btn-ghost" id="b64_dec">Decode</button></div><pre id="b64_out" class="result" style="display:none"></pre>`;
+  document.getElementById('b64_enc').onclick = ()=> { const v=document.getElementById('b64_in').value; document.getElementById('b64_out').style.display='block'; document.getElementById('b64_out').textContent = btoa(unescape(encodeURIComponent(v))); };
+  document.getElementById('b64_dec').onclick = ()=> { try{ document.getElementById('b64_out').style.display='block'; document.getElementById('b64_out').textContent = decodeURIComponent(escape(atob(document.getElementById('b64_in').value))); }catch(e){ document.getElementById('b64_out').style.display='block'; document.getElementById('b64_out').textContent='Invalid base64' } };
+}
+
+function shaTool(container){
+  container.innerHTML = `<input id="sha_in" class="input" value="hello"/><div class="row" style="margin-top:8px"><button class="btn" id="sha_go">Compute SHA-256</button></div><pre id="sha_out" class="result" style="display:none"></pre>`;
+  document.getElementById('sha_go').onclick = async ()=> { const s=document.getElementById('sha_in').value; const enc=new TextEncoder(); const buf=await crypto.subtle.digest('SHA-256', enc.encode(s)); const hex=Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join(''); document.getElementById('sha_out').style.display='block'; document.getElementById('sha_out').textContent = hex; };
+}
+
+function minifyTool(container){
+  container.innerHTML = `<textarea id="min_in" class="input" style="height:160px">&lt;div&gt;\n  Hello\n&lt;/div&gt;</textarea><div class="row" style="margin-top:8px"><button class="btn" id="min_go">Minify</button></div><pre id="min_out" class="result" style="display:none"></pre>`;
+  document.getElementById('min_go').onclick = ()=> { const t=document.getElementById('min_in').value; document.getElementById('min_out').style.display='block'; document.getElementById('min_out').textContent = t.replace(/\n|\t/g,'').replace(/\s{2,}/g,' '); };
+}
+
+function loremTool(container){
+  container.innerHTML = `<div class="row"><input id="lorem_n" class="input" type="number" value="3" /></div><div class="row" style="margin-top:8px"><button class="btn" id="lorem_gen">Generate</button></div><pre id="lorem_out" class="result" style="display:none"></pre>`;
+  document.getElementById('lorem_gen').onclick = ()=> { const n=Math.max(1,Math.min(50,parseInt(document.getElementById('lorem_n').value||3))); const p='Lorem ipsum dolor sit amet, consectetur adipiscing elit.'; document.getElementById('lorem_out').style.display='block'; document.getElementById('lorem_out').textContent = Array.from({length:n}).map(()=>p).join('\n\n'); };
+}
+
+function csvjsonTool(container){
+  container.innerHTML = `<textarea id="csv_in" class="input" style="height:180px">name,age\nAamir,21</textarea><div class="row" style="margin-top:8px"><button class="btn" id="csv2json">CSV → JSON</button><button class="btn-ghost" id="json2csv">JSON → CSV</button></div><pre id="csv_out" class="result" style="display:none"></pre>`;
+  document.getElementById('csv2json').onclick = ()=> {
+    try{ const csv=document.getElementById('csv_in').value.trim(); const lines=csv.split('\n'); const keys = lines.shift().split(','); const arr = lines.map(line=>{ const vals=line.split(','); const obj={}; keys.forEach((k,i)=>obj[k.trim()]=(vals[i]||'').trim()); return obj }); document.getElementById('csv_out').style.display='block'; document.getElementById('csv_out').textContent = JSON.stringify(arr,null,2); }catch(e){ document.getElementById('csv_out').style.display='block'; document.getElementById('csv_out').textContent='Error' } };
+  document.getElementById('json2csv').onclick = ()=> {
+    try{ const j=JSON.parse(document.getElementById('csv_in').value); if(!Array.isArray(j)) throw 'Expecting JSON array'; const keys=Object.keys(j[0]||{}); const lines=[keys.join(',')]; j.forEach(r=> lines.push(keys.map(k=>r[k]||'').join(','))); document.getElementById('csv_out').style.display='block'; document.getElementById('csv_out').textContent = lines.join('\n'); }catch(e){ document.getElementById('csv_out').style.display='block'; document.getElementById('csv_out').textContent='Invalid JSON array' } };
+}
+
+function csvCleanTool(container){
+  container.innerHTML = `<textarea id="csvc_in" class="input" style="height:180px">a,b\n1,2\n1,2\n3,4</textarea><div class="row" style="margin-top:8px"><button class="btn" id="csvc_go">Remove duplicates & trim</button></div><pre id="csvc_out" class="result" style="display:none"></pre>`;
+  document.getElementById('csvc_go').onclick = ()=> {
+    const txt = document.getElementById('csvc_in').value.trim(); const lines = txt.split('\n'); if(lines.length<=1){ document.getElementById('csvc_out').textContent='No data'; document.getElementById('csvc_out').style.display='block'; return }
+    const header = lines.shift(); const seen=new Set(); const out=[header];
+    lines.forEach(l=>{ const key = l.split(',').map(s=>s.trim()).join('|'); if(!seen.has(key)){ seen.add(key); out.push(l.split(',').map(s=>s.trim()).join(',')) }});
+    document.getElementById('csvc_out').style.display='block'; document.getElementById('csvc_out').textContent = out.join('\n');
+  };
+}
+
+function imageTool(container){
+  container.innerHTML = `<input id="img_file" type="file" accept="image/*" /><div class="row" style="margin-top:8px"><input id="img_width" class="input" type="number" value="800" /><select id="img_fmt" class="input" style="width:140px"><option value="image/png">PNG</option><option value="image/jpeg">JPEG</option><option value="image/webp">WebP</option></select><button class="btn" id="img_run">Convert & Download</button></div><div id="img_out" style="margin-top:12px"></div>`;
+  document.getElementById('img_run').onclick = ()=>{
+    const f=document.getElementById('img_file').files[0]; if(!f) return alert('Choose image');
+    const width = parseInt(document.getElementById('img_width').value)||800; const fmt=document.getElementById('img_fmt').value;
+    const img=new Image(); const url=URL.createObjectURL(f);
+    img.onload = ()=>{ const scale = width/img.width; const h = Math.round(img.height*scale); const c=document.createElement('canvas'); c.width=width; c.height=h; const ctx=c.getContext('2d'); ctx.drawImage(img,0,0,width,h); c.toBlob(b=>{ const u=URL.createObjectURL(b); document.getElementById('img_out').innerHTML = `<a class="btn" href="${u}" download="converted.${fmt.split('/')[1]}">Download</a><div style="margin-top:8px"><img class="preview" src="${u}" /></div>`; }, fmt, 0.9); URL.revokeObjectURL(url); }; img.src=url;
+  };
+}
+
+function imageCompressTool(container){
+  container.innerHTML = `<input id="cmp_file" type="file" accept="image/*" /><div class="row" style="margin-top:8px"><label>Quality</label><input id="cmp_q" type="range" min="10" max="100" value="80" /><div style="margin-left:auto"><button class="btn" id="cmp_go">Compress</button></div></div><div id="cmp_out" style="margin-top:12px"></div>`;
+  document.getElementById('cmp_go').onclick = ()=>{
+    const f=document.getElementById('cmp_file').files[0]; if(!f) return alert('Choose image');
+    const q = (parseInt(document.getElementById('cmp_q').value)||80)/100;
+    const img=new Image(); const url=URL.createObjectURL(f);
+    img.onload = ()=>{ const c=document.createElement('canvas'); c.width=img.width; c.height=img.height; const ctx=c.getContext('2d'); ctx.drawImage(img,0,0); c.toBlob(b=>{ const u=URL.createObjectURL(b); document.getElementById('cmp_out').innerHTML = `<a class="btn" href="${u}" download="compressed.jpg">Download</a><div style="margin-top:8px"><img class="preview" src="${u}" /></div>`; }, 'image/jpeg', q); URL.revokeObjectURL(url); }; img.src=url;
+  };
+}
+
+function paletteTool(container){
+  container.innerHTML = `<input id="pal_file" type="file" accept="image/*" /><div class="row" style="margin-top:8px"><button class="btn" id="pal_go">Extract Colors</button></div><div id="pal_out" class="result" style="display:none"></div>`;
+  document.getElementById('pal_go').onclick = ()=>{
+    const f=document.getElementById('pal_file').files[0]; if(!f) return alert('Choose image');
+    const img=new Image(); const url=URL.createObjectURL(f);
+    img.onload = ()=>{ const c=document.createElement('canvas'); c.width=Math.min(200,img.width); c.height=Math.min(200,img.height); const ctx=c.getContext('2d'); ctx.drawImage(img,0,0,c.width,c.height); const data=ctx.getImageData(0,0,c.width,c.height).data; const map={}; for(let i=0;i<data.length;i+=4){ const key=`${data[i]},${data[i+1]},${data[i+2]}`; map[key]=(map[key]||0)+1 } const arr=Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,8).map(x=>x[0]); const out=document.getElementById('pal_out'); out.style.display='block'; out.innerHTML=''; arr.forEach(rgb=>{ const hex='#'+rgb.split(',').map(n=>Number(n).toString(16).padStart(2,'0')).join(''); out.innerHTML += `<div style="display:inline-block;margin-right:10px"><div style="width:64px;height:40px;background:${hex};border-radius:6px;border:1px solid #e6eef0"></div><div style="font-size:12px">${hex}</div></div>` }); URL.revokeObjectURL(url); };
+    img.src = url;
+  };
+}
+
+function memeTool(container){
+  container.innerHTML = `<input id="meme_file" type="file" accept="image/*" /><div class="row" style="margin-top:8px"><input id="meme_top" class="input" placeholder="Top text" /><input id="meme_bottom" class="input" placeholder="Bottom text" /><button class="btn" id="meme_go">Make</button></div><div id="meme_out" style="margin-top:12px"></div>`;
+  document.getElementById('meme_go').onclick = ()=>{
+    const f=document.getElementById('meme_file').files[0]; if(!f) return alert('Choose image');
+    const top=document.getElementById('meme_top').value, bottom=document.getElementById('meme_bottom').value;
+    const img=new Image(); const url=URL.createObjectURL(f);
+    img.onload = ()=>{ const c=document.createElement('canvas'); c.width=img.width; c.height=img.height; const ctx=c.getContext('2d'); ctx.drawImage(img,0,0); const size=Math.max(24,Math.floor(c.width/12)); ctx.font=`${size}px Impact,Arial`; ctx.textAlign='center'; ctx.fillStyle='white'; ctx.strokeStyle='black'; ctx.lineWidth = Math.max(4, Math.floor(c.width/200)*4); ctx.fillText(top, c.width/2, size + 10); ctx.strokeText(top, c.width/2, size + 10); ctx.fillText(bottom, c.width/2, c.height - 20); ctx.strokeText(bottom, c.width/2, c.height - 20); const data=c.toDataURL('image/png'); document.getElementById('meme_out').innerHTML = `<a class="btn" href="${data}" download="meme.png">Download</a><div style="margin-top:8px"><img class="preview" src="${data}" /></div>`; URL.revokeObjectURL(url); }; img.src=url;
+  };
+}
+
+function faviconTool(container){
+  container.innerHTML = `<input id="fav_file" type="file" accept="image/*" /><div class="row" style="margin-top:8px"><button class="btn" id="fav_go">Crop to 64×64</button></div><div id="fav_out" style="margin-top:12px"></div>`;
+  document.getElementById('fav_go').onclick = ()=> {
+    const f=document.getElementById('fav_file').files[0]; if(!f) return alert('Choose image');
+    const img=new Image(); const url=URL.createObjectURL(f);
+    img.onload = ()=>{ const c=document.createElement('canvas'); c.width=64; c.height=64; const ctx=c.getContext('2d'); const size=Math.min(img.width,img.height); ctx.drawImage(img,(img.width-size)/2,(img.height-size)/2,size,size,0,0,64,64); const data=c.toDataURL('image/png'); document.getElementById('fav_out').innerHTML = `<a class="btn" href="${data}" download="favicon.png">Download</a><div style="margin-top:8px"><img class="preview" src="${data}" /></div>`; URL.revokeObjectURL(url); }; img.src=url;
+  };
+}
+
+function avatarTool(container){
+  container.innerHTML = `<input id="av_seed" class="input" value="Aamir" /><div class="row" style="margin-top:8px"><button class="btn" id="av_go">Generate</button></div><div id="av_out" style="margin-top:12px"></div>`;
+  document.getElementById('av_go').onclick = ()=> {
+    const seed=document.getElementById('av_seed').value || 'user'; const c=document.createElement('canvas'); c.width=128; c.height=128; const ctx=c.getContext('2d'); ctx.fillStyle='#f0f6f6'; ctx.fillRect(0,0,128,128); let h=0; for(let i=0;i<seed.length;i++) h=(h*31+seed.charCodeAt(i))%0xffffff; ctx.fillStyle='#'+h.toString(16).padStart(6,'0'); ctx.fillRect(28,28,72,72); const data=c.toDataURL(); document.getElementById('av_out').innerHTML = `<a class="btn" href="${data}" download="avatar.png">Download</a><div style="margin-top:8px"><img class="preview" src="${data}" /></div>`; };
+}
+
+function regexTool(container){
+  container.innerHTML = `<div class="row"><input id="re_pat" class="input" value="\\d+" /><input id="re_flags" class="input" style="width:80px" value="g" /></div><textarea id="re_input" class="input" style="height:140px;margin-top:8px">123 abc 456</textarea><div style="margin-top:8px"><button class="btn" id="re_go">Run</button></div><pre id="re_out" class="result" style="display:none"></pre>`;
+  document.getElementById('re_go').onclick = ()=> { try{ const re=new RegExp(document.getElementById('re_pat').value, document.getElementById('re_flags').value); const res=document.getElementById('re_input').value.match(re); document.getElementById('re_out').style.display='block'; document.getElementById('re_out').textContent=JSON.stringify(res); }catch(e){ document.getElementById('re_out').style.display='block'; document.getElementById('re_out').textContent='Error: '+e.message; } };
+}
+
+function unitTool(container){
+  container.innerHTML = `<div class="row"><input id="u_val" class="input" type="number" value="1" /><select id="u_from" class="input"><option value="m">m</option><option value="cm">cm</option><option value="mm">mm</option><option value="km">km</option></select><select id="u_to" class="input"><option value="m">m</option><option value="cm">cm</option><option value="mm">mm</option><option value="km">km</option></select><div style="margin-left:auto"><button class="btn" id="u_go">Convert</button></div></div><div id="u_out" class="result" style="display:none"></div>`;
+  document.getElementById('u_go').onclick = ()=> { const val=parseFloat(document.getElementById('u_val').value)||0; const units={m:1,cm:0.01,mm:0.001,km:1000}; const from=document.getElementById('u_from').value, to=document.getElementById('u_to').value; const res=(val*units[from])/units[to]; document.getElementById('u_out').style.display='block'; document.getElementById('u_out').textContent=res; };
+}
+
+function pomodoroTool(container){
+  container.innerHTML = `<div class="row"><input id="pom_mins" class="input" type="number" value="25" /><div style="margin-left:auto"><button class="btn" id="pom_start">Start</button><button class="btn-ghost" id="pom_pause" style="margin-left:8px">Pause</button><button class="btn-ghost" id="pom_reset" style="margin-left:8px">Reset</button></div></div><div id="pom_out" class="result" style="font-size:28px;margin-top:12px">00:00</div>`;
+  let timer=null; let time=(parseInt(document.getElementById('pom_mins').value)||25)*60;
+  function render(){ document.getElementById('pom_out').textContent = `${String(Math.floor(time/60)).padStart(2,'0')}:${String(time%60).padStart(2,'0')}`; }
+  render();
+  document.getElementById('pom_start').onclick = ()=>{ if(timer) return; timer=setInterval(()=>{ if(time<=0){ clearInterval(timer); timer=null; return } time--; render(); },1000) };
+  document.getElementById('pom_pause').onclick = ()=> { clearInterval(timer); timer=null };
+  document.getElementById('pom_reset').onclick = ()=> { clearInterval(timer); timer=null; time=(parseInt(document.getElementById('pom_mins').value)||25)*60; render(); };
+}
+
+function metaTool(container){
+  container.innerHTML = `<input id="meta_title" class="input" placeholder="Title" value="My Page" /><textarea id="meta_desc" class="input" style="height:80px;margin-top:8px" placeholder="Description">Short description</textarea><input id="meta_url" class="input" style="margin-top:8px" placeholder="https://example.com" value="https://example.com" /><div style="margin-top:8px"><button class="btn" id="meta_go">Copy Meta</button></div><pre id="meta_out" class="result" style="display:none"></pre>`;
+  document.getElementById('meta_go').onclick = ()=> { const t=document.getElementById('meta_title').value, d=document.getElementById('meta_desc').value, u=document.getElementById('meta_url').value; const out=`<title>${t}</title>\n<meta name="description" content="${d}" />\n<meta property="og:title" content="${t}" />\n<meta property="og:description" content="${d}" />\n<meta property="og:url" content="${u}" />`; document.getElementById('meta_out').style.display='block'; document.getElementById('meta_out').textContent=out; navigator.clipboard?.writeText(out); };
+}
+
+function robotsTool(container){
+  container.innerHTML = `<input id="rb_domain" class="input" value="https://example.com" /><div class="row" style="margin-top:8px"><button class="btn" id="rb_robots">Copy robots.txt</button><button class="btn-ghost" id="rb_sitemap" style="margin-left:8px">Generate sitemap.xml</button></div><pre id="rb_out" class="result" style="display:none"></pre>`;
+  document.getElementById('rb_robots').onclick = ()=> { const d=document.getElementById('rb_domain').value.replace(/\/$/,''); const robots=`User-agent: *\nAllow: /\nSitemap: ${d}/sitemap.xml`; navigator.clipboard?.writeText(robots); alert('robots.txt copied'); };
+  document.getElementById('rb_sitemap').onclick = ()=> { const d=document.getElementById('rb_domain').value.replace(/\/$/,''); const xml=`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n  <url>\n    <loc>${d}/</loc>\n    <changefreq>daily</changefreq>\n  </url>\n</urlset>`; document.getElementById('rb_out').style.display='block'; document.getElementById('rb_out').textContent=xml; };
+}
+
+function flashTool(container){
+  container.innerHTML = `<textarea id="flash_in" class="input" style="height:200px">Question?\nAnswer\n\nWhat is JS?\nJavaScript</textarea><div style="margin-top:8px"><button class="btn" id="flash_gen">Generate Flashcards</button></div><div id="flash_out" class="result" style="display:none"></div>`;
+  document.getElementById('flash_gen').onclick = ()=> { const txt=document.getElementById('flash_in').value; const blocks=txt.split(/\n\n+/).map(b=>b.split('\n')); const cards=blocks.map(b=>({q:b[0]||'', a:b[1]||''})); const out=document.getElementById('flash_out'); out.style.display='block'; out.innerHTML=''; cards.forEach((c,i)=> out.innerHTML += `<div style="margin-bottom:10px"><strong>${i+1}. ${escapeHtml(c.q)}</strong><div style="font-size:13px">${escapeHtml(c.a)}</div></div>`); };
+}
+
+function summarizerTool(container){
+  container.innerHTML = `<textarea id="sum_in" class="input" style="height:180px"></textarea><div style="margin-top:8px"><button class="btn" id="sum_go">Summarize</button></div><div id="sum_out" class="result" style="display:none"></div>`;
+  document.getElementById('sum_go').onclick = ()=> { const t=document.getElementById('sum_in').value; const s=t.split(/[.?!]\s+/).filter(Boolean).slice(0,3).join('. ') + (t.includes('.')?'.':''); document.getElementById('sum_out').style.display='block'; document.getElementById('sum_out').textContent = s||'No content'; };
+}
+
+function citationTool(container){
+  container.innerHTML = `<input id="cit_title" class="input" placeholder="Title" value="Paper Title" /><input id="cit_author" class="input" placeholder="Author" style="margin-top:8px" value="Aamir" /><input id="cit_year" class="input" placeholder="Year" style="margin-top:8px" value="${new Date().getFullYear()}" /><div style="margin-top:8px" class="row"><button class="btn" id="cit_apa">APA</button><button class="btn-ghost" id="cit_mla">MLA</button></div><div id="cit_out" class="result" style="display:none"></div>`;
+  document.getElementById('cit_apa').onclick = ()=> { const a=document.getElementById('cit_author').value, y=document.getElementById('cit_year').value, t=document.getElementById('cit_title').value; document.getElementById('cit_out').style.display='block'; document.getElementById('cit_out').textContent = `${a} (${y}). ${t}.`; };
+  document.getElementById('cit_mla').onclick = ()=> { const a=document.getElementById('cit_author').value, y=document.getElementById('cit_year').value, t=document.getElementById('cit_title').value; document.getElementById('cit_out').style.display='block'; document.getElementById('cit_out').textContent = `${a}. "${t}." ${y}.`; };
+}
+
+function dataUriTool(container){
+  container.innerHTML = `<textarea id="dui_in" class="input" style="height:160px">Hello world</textarea><div style="margin-top:8px"><button class="btn" id="dui_go">Generate Data URI</button></div><pre id="dui_out" class="result" style="display:none"></pre>`;
+  document.getElementById('dui_go').onclick = ()=> { const txt=document.getElementById('dui_in').value; const uri='data:text/plain;base64,'+btoa(unescape(encodeURIComponent(txt))); document.getElementById('dui_out').style.display='block'; document.getElementById('dui_out').textContent=uri; };
+}
+
+function minQuickTool(container){
+  container.innerHTML = `<textarea id="mq_in" class="input" style="height:120px">&lt;div&gt; Hello &lt;/div&gt;</textarea><div style="margin-top:8px"><button class="btn" id="mq_go">Minify</button></div><pre id="mq_out" class="result" style="display:none"></pre>`;
+  document.getElementById('mq_go').onclick = ()=> { const t=document.getElementById('mq_in').value; document.getElementById('mq_out').style.display='block'; document.getElementById('mq_out').textContent = t.replace(/\n|\t/g,'').replace(/\s{2,}/g,' '); };
+}
+
+function notesTool(container){
+  container.innerHTML = `<textarea id="notes_txt" class="input" style="height:300px" placeholder="Write notes..."></textarea><div style="margin-top:8px" class="row"><button class="btn" id="notes_copy">Copy</button><button class="btn-ghost" id="notes_clear">Clear</button></div>`;
+  document.getElementById('notes_copy').onclick = ()=> navigator.clipboard?.writeText(document.getElementById('notes_txt').value);
+  document.getElementById('notes_clear').onclick = ()=> document.getElementById('notes_txt').value = '';
+}
+
+/* -------------------------
+   PDF Tools (pdf-lib required)
+   ------------------------- */
+
+async function pdfMergeTool(container){
+  container.innerHTML = `<input id="pdf_merge_files" type="file" accept="application/pdf" multiple /><div class="row" style="margin-top:8px"><button class="btn" id="pdf_merge_go">Merge PDFs</button></div><div id="pdf_merge_out" style="margin-top:12px"></div>`;
+  document.getElementById('pdf_merge_go').onclick = async ()=>{
+    const files = Array.from(document.getElementById('pdf_merge_files').files || []);
+    if(files.length < 1) return alert('Choose one or more PDFs to merge');
+    try{
+      const merged = await PDFLib.PDFDocument.create();
+      for(const f of files){
+        const arr = await f.arrayBuffer();
+        const src = await PDFLib.PDFDocument.load(arr);
+        const pages = await merged.copyPages(src, src.getPageIndices());
+        pages.forEach(p => merged.addPage(p));
+      }
+      const bytes = await merged.save();
+      downloadBlob(new Blob([bytes],{type:'application/pdf'}), 'merged.pdf');
+      document.getElementById('pdf_merge_out').textContent = 'Merged — download started.';
+    }catch(e){ console.error(e); document.getElementById('pdf_merge_out').textContent = 'Merge failed: '+e.message; }
+  };
+}
+
+async function pdfSplitTool(container){
+  container.innerHTML = `<input id="pdf_split_file" type="file" accept="application/pdf" /><div class="row" style="margin-top:8px"><input id="pdf_split_pages" class="input" placeholder="pages e.g. 1-3,5 (leave empty for single-page files)" /><button class="btn" id="pdf_split_go">Split / Extract</button></div><div id="pdf_split_out" style="margin-top:12px"></div>`;
+  document.getElementById('pdf_split_go').onclick = async ()=>{
+    const f = document.getElementById('pdf_split_file').files[0]; if(!f) return alert('Choose a PDF file');
+    const buf = await f.arrayBuffer();
+    const src = await PDFLib.PDFDocument.load(buf);
+    const total = src.getPageCount();
+    const spec = (document.getElementById('pdf_split_pages').value || '').trim();
+    let pages = [];
+    if(!spec) { for(let i=0;i<total;i++) pages.push(i); }
+    else {
+      spec.split(',').forEach(part=>{
+        if(part.includes('-')){ const [a,b]=part.split('-').map(x=>parseInt(x.trim())-1); for(let i=a;i<=b;i++) if(i>=0 && i<total) pages.push(i); }
+        else{ const p=parseInt(part.trim())-1; if(!isNaN(p) && p>=0 && p<total) pages.push(p); }
+      });
+    }
+    if(pages.length===0) return alert('No pages selected');
+    const outDiv = document.getElementById('pdf_split_out'); outDiv.innerHTML = '';
+    for(const p of pages){
+      const doc = await PDFLib.PDFDocument.create();
+      const [copied] = await doc.copyPages(src, [p]);
+      doc.addPage(copied);
+      const bytes = await doc.save();
+      const blob = new Blob([bytes], {type:'application/pdf'}); const url = URL.createObjectURL(blob);
+      outDiv.innerHTML += `<div style="margin-bottom:8px">Page ${p+1}: <a class="btn" href="${url}" download="page-${p+1}.pdf">Download</a></div>`;
+      setTimeout(()=>URL.revokeObjectURL(url), 30000);
+    }
+  };
+}
+
+async function pdfRotateTool(container){
+  container.innerHTML = `<input id="pdf_rot_file" type="file" accept="application/pdf" /><div class="row" style="margin-top:8px"><input id="pdf_rot_pages" class="input" placeholder="pages e.g. 1-3,5" /><select id="pdf_rot_angle" class="input" style="width:120px"><option value="90">90°</option><option value="180">180°</option><option value="270">270°</option></select><button class="btn" id="pdf_rot_go">Rotate selected pages</button></div><div id="pdf_rot_out" style="margin-top:12px"></div>`;
+  document.getElementById('pdf_rot_go').onclick = async ()=>{
+    const f=document.getElementById('pdf_rot_file').files[0]; if(!f) return alert('Choose PDF'); const buf=await f.arrayBuffer(); const src=await PDFLib.PDFDocument.load(buf); const total=src.getPageCount(); const spec=(document.getElementById('pdf_rot_pages').value||'').trim(); let pages=[]; if(!spec) return alert('Specify pages'); spec.split(',').forEach(part=>{ if(part.includes('-')){ const [a,b]=part.split('-').map(x=>parseInt(x.trim())-1); for(let i=a;i<=b;i++) if(i>=0 && i<total) pages.push(i); } else { const p=parseInt(part.trim())-1; if(!isNaN(p) && p>=0 && p<total) pages.push(p); } }); const angle = parseInt(document.getElementById('pdf_rot_angle').value) || 90;
+    // rotate pages in-place: pdf-lib does not provide setRotation on copied pages directly, so create new doc and copy pages setting rotation
+    const outDoc = await PDFLib.PDFDocument.create();
+    const copiedPages = await outDoc.copyPages(src, src.getPageIndices());
+    copiedPages.forEach((pg, idx)=> {
+      const p = outDoc.addPage(pg);
+      if(pages.includes(idx)){
+        const rot = (angle/90) % 4; // 1=90,2=180,3=270
+        for(let i=0;i<rot;i++){
+          p.setRotation(p.getRotation().rotate90());
+        }
+      }
+    });
+    const bytes = await outDoc.save();
+    downloadBlob(new Blob([bytes],{type:'application/pdf'}), 'rotated.pdf');
+    document.getElementById('pdf_rot_out').textContent = 'Rotated PDF ready (download started).';
+  };
+}
+
+/* end of tools */
+</script>
+</body>
+</html>
